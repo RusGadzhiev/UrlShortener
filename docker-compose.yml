@@ -1,0 +1,31 @@
+version: '3.1'
+
+services:
+  url_shortener:
+    container_name: url_shortener
+    build: 
+      context: ./
+      dockerfile: ./Dockerfile
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      pg_pass: "${pg_pass}"
+    ports:
+      - "8080:8080"
+    networks:
+      - ps
+  
+  postgres:
+    image: postgres:alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: "${pg_pass}"
+      POSTGRES_USER: "ruslan"
+    ports:
+      - "5432:5432"
+    networks:
+      - ps
+
+networks:
+  ps:
