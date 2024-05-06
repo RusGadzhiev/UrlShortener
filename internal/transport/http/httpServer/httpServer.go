@@ -7,7 +7,7 @@ import (
 
 	"github.com/RusGadzhiev/UrlShortener/internal/config"
 	"github.com/RusGadzhiev/UrlShortener/internal/transport/http/httpHandler"
-	"go.uber.org/zap"
+	"github.com/RusGadzhiev/UrlShortener/pkg/logger"
 )
 
 type HttpServer struct {
@@ -26,7 +26,7 @@ func NewHttpServer(ctx context.Context, h *httpHandler.HttpHandler, cfg config.H
 	}
 }
 
-func (s *HttpServer) Run(ctx context.Context, logger *zap.SugaredLogger) error {
+func (s *HttpServer) Run(ctx context.Context) error {
 	go func() {
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatalf("Listen error: ", err)
@@ -35,7 +35,7 @@ func (s *HttpServer) Run(ctx context.Context, logger *zap.SugaredLogger) error {
 	logger.Info("Start listen at " + s.server.Addr)
 
 	<-ctx.Done()
-	logger.Info("\n Gracefully stopping...")
+	logger.Info("Gracefully stopping...")
 
 	shtCtx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer cancel()

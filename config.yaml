@@ -6,7 +6,7 @@ pg_db:
 
 http_server:
     host: "localhost"
-    port: "8080"
+    port: "8000"
     timeout: "4s"
     idle_timeout: "60s"
     username: "ruslan"

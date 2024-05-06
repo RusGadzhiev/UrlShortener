@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/RusGadzhiev/UrlShortener/internal/service/encoder"
+	"github.com/RusGadzhiev/UrlShortener/pkg/logger"
 )
 
 var (
 	ErrUrlNotFound = errors.New("no such url")
-	ErrUrlExist = errors.New("url exist")
 )
 
 type Storage interface {
@@ -36,25 +36,28 @@ func NewService(repo Storage) *service {
 func (s *service) GetUrl(ctx context.Context, shortUrl string) (string, error) {
 	longUrl, err := s.repo.GetLongURL(ctx, shortUrl)
 	if err == ErrUrlNotFound {
-		return "", fmt.Errorf("GetUrl error: %w", err)
+		logger.Debugf("LongUrl: %s  err: %w", longUrl, err)
+		return "", ErrUrlNotFound
 	} else if err != nil {
 		return "", fmt.Errorf("GetUrl error: %w", err)
 	}
 	return longUrl, err
 }
 
-// сделать с минимумом обращений в базу
 func (s *service) ShortenUrl(ctx context.Context, longUrl string) (string, error) {
-	// длинная ссылка уже сохранена
-	if shortUrl, err := s.repo.GetShortURL(ctx, longUrl); err != ErrUrlNotFound {
+	shortUrl, err := s.repo.GetShortURL(ctx, longUrl)
+	if err == nil {
+		logger.Debugf("ShortUrl: %s already exist", shortUrl)
 		return shortUrl, nil
+	} else if err != ErrUrlNotFound {
+		return "", fmt.Errorf("ShortenUrl (GetShortURL) error: %w", err)
 	}
 
-	shortUrl := encoder.Encode(int(time.Now().Unix()))
+	shortUrl = encoder.Encode(int(time.Now().Unix()))
 
-	err := s.repo.Add(ctx, longUrl, shortUrl)
+	err = s.repo.Add(ctx, longUrl, shortUrl)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("ShortenUrl (Add) error: %w", err)
 	}
 
 	return shortUrl, nil

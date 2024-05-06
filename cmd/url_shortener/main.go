@@ -12,17 +12,14 @@ import (
 	"github.com/RusGadzhiev/UrlShortener/internal/transport/http/httpServer"
 	"github.com/RusGadzhiev/UrlShortener/pkg/logger"
 	"github.com/RusGadzhiev/UrlShortener/pkg/validator"
-	"go.uber.org/zap"
 )
 
 type Server interface {
-	Run(ctx context.Context, logger *zap.SugaredLogger) error
+	Run(ctx context.Context) error
 }
 
-// нормально обработай ошибки
 func main() {
 	cfg := config.MustLoad()
-	logger := logger.NewZapLogger()
 	validator.ValidatorInit(cfg.Pattern)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -36,11 +33,11 @@ func main() {
 
 	service := service.NewService(storage)
 
-	httpHandler := httpHandler.NewHttpHandler(service, logger)
+	httpHandler := httpHandler.NewHttpHandler(service)
 
 	server := httpServer.NewHttpServer(ctx, httpHandler, cfg.HTTPServer)
 
-	if err := server.Run(ctx, logger); err != nil {
+	if err := server.Run(ctx); err != nil {
 		logger.Fatal(err)
 	}
 }

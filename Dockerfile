@@ -17,7 +17,7 @@ FROM alpine:latest AS runner
 COPY --from=builder /app/url_shortener .
 COPY --from=builder /app/config.yaml ./config.yaml
 
-EXPOSE 8080 5432
+EXPOSE 8000 5432
 
 CMD [ "./url_shortener" ]
 

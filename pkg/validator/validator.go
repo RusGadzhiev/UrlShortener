@@ -4,11 +4,11 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
-var short_url_pattern string
+var shortUrlPattern string
 
 func ValidatorInit(pattern string) {
 	govalidator.SetFieldsRequiredByDefault(true)
-	short_url_pattern = pattern
+	shortUrlPattern = pattern
 }
 
 func IsUrl(url string) bool {
@@ -16,5 +16,5 @@ func IsUrl(url string) bool {
 }
 
 func IsShortUrl(shortUrl string) bool {
-	return govalidator.Matches(shortUrl, short_url_pattern)
+	return govalidator.Matches(shortUrl, shortUrlPattern)
 }
