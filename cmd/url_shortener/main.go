@@ -8,10 +8,17 @@ import (
 	"github.com/RusGadzhiev/UrlShortener/internal/config"
 	"github.com/RusGadzhiev/UrlShortener/internal/service"
 	"github.com/RusGadzhiev/UrlShortener/internal/storage/postgres"
+	"github.com/RusGadzhiev/UrlShortener/internal/transport/grpc/grpcHandler"
+	"github.com/RusGadzhiev/UrlShortener/internal/transport/grpc/grpcServer"
 	"github.com/RusGadzhiev/UrlShortener/internal/transport/http/httpHandler"
 	"github.com/RusGadzhiev/UrlShortener/internal/transport/http/httpServer"
 	"github.com/RusGadzhiev/UrlShortener/pkg/logger"
 	"github.com/RusGadzhiev/UrlShortener/pkg/validator"
+)
+
+const (
+	httpTransportMode = "http"
+	grpcTransportMode = "grpc"
 )
 
 type Server interface {
@@ -33,9 +40,14 @@ func main() {
 
 	service := service.NewService(storage)
 
-	httpHandler := httpHandler.NewHttpHandler(service)
-
-	server := httpServer.NewHttpServer(ctx, httpHandler, cfg.HTTPServer)
+	var server Server
+	if cfg.TransportMode == httpTransportMode {
+		httpHandler := httpHandler.NewHttpHandler(service)
+		server = httpServer.NewHttpServer(ctx, httpHandler, cfg.Server)
+	} else {
+		grpcHandler := grpcHandler.NewGRPCHandler(service)
+		server = grpcServer.NewGRPCServer(ctx, grpcHandler, cfg.Server.Port)
+	}
 
 	if err := server.Run(ctx); err != nil {
 		logger.Fatal(err)

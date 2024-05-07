@@ -14,14 +14,14 @@ type HttpServer struct {
 	server http.Server
 }
 
-func NewHttpServer(ctx context.Context, h *httpHandler.HttpHandler, cfg config.HTTPServer) *HttpServer {
+func NewHttpServer(ctx context.Context, h *httpHandler.HttpHandler, cfg config.Server) *HttpServer {
 	return &HttpServer{
 		server: http.Server{
-			Addr: ":" + cfg.Port,
-			ReadTimeout: cfg.Timeout,
+			Addr:         ":" + cfg.Port,
+			ReadTimeout:  cfg.Timeout,
 			WriteTimeout: cfg.Timeout,
-			IdleTimeout: cfg.IdleTimeout,
-			Handler: h.Router(),
+			IdleTimeout:  cfg.IdleTimeout,
+			Handler:      h.Router(),
 		},
 	}
 }
@@ -32,15 +32,15 @@ func (s *HttpServer) Run(ctx context.Context) error {
 			logger.Fatalf("Listen error: ", err)
 		}
 	}()
-	logger.Info("Start listen at " + s.server.Addr)
+	logger.Info("Start listen http server at " + s.server.Addr)
 
 	<-ctx.Done()
 	logger.Info("Gracefully stopping...")
-
-	shtCtx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
+	
+	shtCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	err := s.server.Shutdown(shtCtx)
 	return err
-	
+
 }

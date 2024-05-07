@@ -4,7 +4,7 @@ pg_db:
     port: "5432"
     username: "ruslan"
 
-http_server:
+server:
     host: "localhost"
     port: "8000"
     timeout: "4s"

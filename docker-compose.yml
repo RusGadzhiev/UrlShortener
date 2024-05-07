@@ -11,6 +11,7 @@ services:
       - postgres
     environment:
       pg_pass: "${pg_pass}"
+      transport_mode: "${transport_mode}"
     ports:
       - "8000:8000"
     networks:

@@ -12,12 +12,13 @@ const (
 )
 
 type Config struct {
-	HTTPServer HTTPServer `yaml:"http_server"`
-	PgDb       PgDb       `yaml:"pg_db"`
-	Pattern    string     `yaml:"short_url_pattern"`
+	TransportMode string `env:"transport_mode" env-default:"http"`
+	Server        Server `yaml:"server"`
+	PgDb          PgDb   `yaml:"pg_db"`
+	Pattern       string `yaml:"short_url_pattern"`
 }
 
-type HTTPServer struct {
+type Server struct {
 	Host        string        `yaml:"host" env-default:"localhost"`
 	Port        string        `yaml:"port" env-default:"8080"`
 	Timeout     time.Duration `yaml:"timeout" env-default:"4s"`
