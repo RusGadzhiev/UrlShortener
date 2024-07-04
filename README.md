@@ -83,7 +83,7 @@ git clone https://github.com/RusGadzhiev/UrlShortener
  make grpc
 ```
 
-## Contact  
+## Контакты 
 
 Гаджиев Руслан - [@RusGadzhiev](https://t.me/driveinyourheart)
 
