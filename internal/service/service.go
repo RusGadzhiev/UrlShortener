@@ -15,11 +15,8 @@ var (
 )
 
 type Storage interface {
-	// возвращает ErrUrlNotFound если урла нет
 	GetShortURL(ctx context.Context, longUrl string) (string, error)
-	// возвращает ErrUrlNotFound если урла нет
 	GetLongURL(ctx context.Context, shortUrl string) (string, error)
-	// добавляет урл
 	Add(ctx context.Context, longUrl string, shortUrl string) error
 }
 

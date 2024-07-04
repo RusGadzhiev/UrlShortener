@@ -13,11 +13,10 @@ import (
 )
 
 type Service interface {
-	// возвращает оригинальный url по короткому
 	GetUrl(ctx context.Context, shortenUrl string) (string, error)
-	// сокращает длинный урл, сохреняет его и возвращает укороченный урл
 	ShortenUrl(ctx context.Context, url string) (string, error)
 }
+
 type HttpHandler struct {
 	service Service
 }
