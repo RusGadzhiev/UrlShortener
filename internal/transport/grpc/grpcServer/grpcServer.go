@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/RusGadzhiev/UrlShortener/internal/transport/grpc/grpcHandler"
 	"github.com/RusGadzhiev/UrlShortener/pkg/logger"
 	proto "github.com/RusGadzhiev/UrlShortener/proto"
 	"google.golang.org/grpc"
@@ -15,7 +16,9 @@ type GRPCServer struct {
 }
 
 func NewGRPCServer(ctx context.Context, grpcHandlers proto.GRPCHandlerServer, port string) *GRPCServer {
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+    	grpc.UnaryInterceptor(grpcHandler.LoggingUnaryServerInterceptor),
+	)
 	proto.RegisterGRPCHandlerServer(s, grpcHandlers)
 
 	return &GRPCServer{

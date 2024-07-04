@@ -30,7 +30,6 @@ func NewGRPCHandler(s Service) *GRPCHandler {
 }
 
 func (h *GRPCHandler) GetUrl(ctx context.Context, r *proto.GetUrlRequest) (*proto.GetUrlResponse, error) {
-	
 	shortUrl := r.GetShortUrl()
 
 	if !validator.IsShortUrl(shortUrl) {
