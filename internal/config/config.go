@@ -2,13 +2,10 @@ package config
 
 import (
 	"log"
+	"os"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
-)
-
-const (
-	ConfigPath = "../../config.yaml"
 )
 
 type Config struct {
@@ -35,9 +32,14 @@ type PgDb struct {
 }
 
 func MustLoad() *Config {
+	path := os.Getenv("config_path")
+	if path == "" {
+		path = "config.yaml"
+	}
+
 	var cfg Config
 
-	if err := cleanenv.ReadConfig(ConfigPath, &cfg); err != nil {
+	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
 		log.Fatalf("cannot read config: %s", err)
 	}
 

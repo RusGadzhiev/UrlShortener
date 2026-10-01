@@ -2,6 +2,7 @@ package grpcHandler
 
 import (
 	"context"
+	"errors"
 
 	"github.com/RusGadzhiev/UrlShortener/internal/service"
 	"github.com/RusGadzhiev/UrlShortener/pkg/logger"
@@ -12,7 +13,7 @@ import (
 )
 
 type Service interface {
-	GetUrl(ctx context.Context, shortenUrl string) (string, error)
+	GetUrl(ctx context.Context, shortenURL string) (string, error)
 	ShortenUrl(ctx context.Context, url string) (string, error)
 }
 
@@ -28,42 +29,39 @@ func NewGRPCHandler(s Service) *GRPCHandler {
 }
 
 func (h *GRPCHandler) GetUrl(ctx context.Context, r *proto.GetUrlRequest) (*proto.GetUrlResponse, error) {
-	shortUrl := r.GetShortUrl()
+	shortURL := r.GetShortUrl()
 
-	if !validator.IsShortUrl(shortUrl) {
-		logger.Debugf("ShortUrl: %s not valid", shortUrl)
+	if !validator.IsShortUrl(shortURL) {
+		logger.Debug("short url is not valid", "short_url", shortURL)
 		return nil, status.Error(codes.InvalidArgument, "")
 	}
 
-	longUrl, err := h.service.GetUrl(ctx, shortUrl)
-	if err == service.ErrUrlNotFound {
-		logger.Debugf("ShortUrl: %s not found", shortUrl)
+	longURL, err := h.service.GetUrl(ctx, shortURL)
+	if errors.Is(err, service.ErrUrlNotFound) {
+		logger.Debug("short url not found", "short_url", shortURL)
 		return nil, status.Error(codes.NotFound, "")
-	} else if err != nil {
-		logger.Errorf("ShortUrl: %s not found, err: %w", shortUrl, err)
+	}
+	if err != nil {
+		logger.Error("get url", "short_url", shortURL, "err", err)
 		return nil, status.Error(codes.Internal, "")
 	}
 
-	return &proto.GetUrlResponse{LongUrl: longUrl}, nil
-
+	return &proto.GetUrlResponse{LongUrl: longURL}, nil
 }
 
 func (h *GRPCHandler) ShortenUrl(ctx context.Context, r *proto.ShortenUrlRequest) (*proto.ShortenUrlResponse, error) {
-	longUrl := r.GetLongUrl()
+	longURL := r.GetLongUrl()
 
-	if !validator.IsUrl(longUrl) {
-		logger.Debugf("LongUrl: %s not valid", longUrl)
+	if !validator.IsUrl(longURL) {
+		logger.Debug("long url is not valid", "long_url", longURL)
 		return nil, status.Error(codes.InvalidArgument, "")
 	}
 
-	shortUrl, err := h.service.ShortenUrl(ctx, longUrl)
+	shortURL, err := h.service.ShortenUrl(ctx, longURL)
 	if err != nil {
-		logger.Errorf("ShortenUrl err: %w", err)
+		logger.Error("shorten url", "err", err)
 		return nil, status.Error(codes.Internal, "")
 	}
 
-	return &proto.ShortenUrlResponse{ShortUrl: shortUrl}, nil
-
+	return &proto.ShortenUrlResponse{ShortUrl: shortURL}, nil
 }
-
-

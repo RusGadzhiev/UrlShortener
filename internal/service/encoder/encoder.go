@@ -17,7 +17,7 @@ func init() {
 
 func Encode(token int) string {
 	shorten := [urlLen]byte{}
-	for i := 0; i < urlLen; i++ {
+	for i := range urlLen {
 		if token > 0 {
 			shorten[urlLen-1-i] = alphabet[token%alphabetLen]
 			token /= alphabetLen

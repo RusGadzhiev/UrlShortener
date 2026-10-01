@@ -34,22 +34,22 @@ func main() {
 
 	storage, err := postgres.NewPostgresStorage(ctx, cfg.PgDb)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatal("storage postgres", "err", err)
 	}
-	logger.Info("Storage postgres started successfully")
+	logger.Info("storage postgres started successfully")
 
 	service := service.NewService(storage)
 
 	var server Server
 	if cfg.TransportMode == httpTransportMode {
 		httpHandler := httpHandler.NewHttpHandler(service)
-		server = httpServer.NewHttpServer(ctx, httpHandler, cfg.Server)
+		server = httpServer.NewHttpServer(httpHandler, cfg.Server)
 	} else {
 		grpcHandler := grpcHandler.NewGRPCHandler(service)
-		server = grpcServer.NewGRPCServer(ctx, grpcHandler, cfg.Server.Port)
+		server = grpcServer.NewGRPCServer(grpcHandler, cfg.Server.Port)
 	}
 
 	if err := server.Run(ctx); err != nil {
-		logger.Fatal(err)
+		logger.Fatal("server", "err", err)
 	}
 }

@@ -2,6 +2,7 @@ package httpServer
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -14,7 +15,7 @@ type HttpServer struct {
 	server http.Server
 }
 
-func NewHttpServer(ctx context.Context, h *httpHandler.HttpHandler, cfg config.Server) *HttpServer {
+func NewHttpServer(h *httpHandler.HttpHandler, cfg config.Server) *HttpServer {
 	return &HttpServer{
 		server: http.Server{
 			Addr:         ":" + cfg.Port,
@@ -27,20 +28,29 @@ func NewHttpServer(ctx context.Context, h *httpHandler.HttpHandler, cfg config.S
 }
 
 func (s *HttpServer) Run(ctx context.Context) error {
+	errCh := make(chan error, 1)
 	go func() {
-		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatalf("Listen error: ", err)
+		err := s.server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errCh <- err
+			return
 		}
+		errCh <- nil
 	}()
-	logger.Info("Start listen http server at " + s.server.Addr)
+	logger.Info("start listen http server", "addr", s.server.Addr)
 
-	<-ctx.Done()
-	logger.Info("Gracefully stopping...")
-	
-	shtCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	select {
+	case <-ctx.Done():
+		logger.Info("gracefully stopping", "cause", context.Cause(ctx))
 
-	err := s.server.Shutdown(shtCtx)
-	return err
+		shtCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 
+		if err := s.server.Shutdown(shtCtx); err != nil {
+			return err
+		}
+		return <-errCh
+	case err := <-errCh:
+		return err
+	}
 }

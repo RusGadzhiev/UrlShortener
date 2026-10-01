@@ -1,8 +1,6 @@
-FROM golang:latest AS builder
+FROM golang:1.26 AS builder
 
 WORKDIR /app
-
-RUN export GO111MODULE=on
 
 COPY ./go.mod ./go.sum ./
 

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/RusGadzhiev/UrlShortener/internal/config"
-	"github.com/RusGadzhiev/UrlShortener/internal/service"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,6 +21,7 @@ var createQuery = `
 	);
 `
 var (
+	ErrNotFound        = errors.New("url not found")
 	ErrPingPostgres    = errors.New("error of ping postgres")
 	ErrNewPoolPostgres = errors.New("error new pool postgres")
 	ErrInitPostgres    = errors.New("error init postgres")
@@ -28,7 +29,7 @@ var (
 
 const (
 	Short = "short"
-	Long = "long"
+	Long  = "long"
 )
 
 type postgresStorage struct {
@@ -40,15 +41,15 @@ func NewPostgresStorage(ctx context.Context, cfg config.PgDb) (*postgresStorage,
 
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
-		return nil, ErrNewPoolPostgres
+		return nil, fmt.Errorf("%w: %w", ErrNewPoolPostgres, err)
 	}
 	if err := pool.Ping(ctx); err != nil {
-		return nil, ErrPingPostgres
+		return nil, fmt.Errorf("%w: %w", ErrPingPostgres, err)
 	}
 
 	_, err = pool.Exec(ctx, createQuery)
 	if err != nil {
-		return nil, ErrInitPostgres
+		return nil, fmt.Errorf("%w: %w", ErrInitPostgres, err)
 	}
 
 	return &postgresStorage{
@@ -56,34 +57,40 @@ func NewPostgresStorage(ctx context.Context, cfg config.PgDb) (*postgresStorage,
 	}, nil
 }
 
-func (s *postgresStorage) GetShortURL(ctx context.Context, longUrl string) (string, error) {
-	return s.getURL(ctx, longUrl, Short)
+func (s *postgresStorage) GetShortURL(ctx context.Context, longURL string) (string, error) {
+	return s.getURL(ctx, longURL, Short)
 }
 
-func (s *postgresStorage) GetLongURL(ctx context.Context, shortUrl string) (string, error) {
-	return s.getURL(ctx, shortUrl, Long)
+func (s *postgresStorage) GetLongURL(ctx context.Context, shortURL string) (string, error) {
+	return s.getURL(ctx, shortURL, Long)
 }
 
-func (s *postgresStorage) Add(ctx context.Context, longUrl string, shortUrl string) error {
+func (s *postgresStorage) Add(ctx context.Context, longURL string, shortURL string) error {
 	q := `INSERT INTO links(short_url, long_url) VALUES($1, $2)`
 
-	_, err := s.pool.Exec(ctx, q, shortUrl, longUrl)
-	return err
+	_, err := s.pool.Exec(ctx, q, shortURL, longURL)
+	if err != nil {
+		return fmt.Errorf("add url: %w", err)
+	}
+	return nil
 }
 
 func (s *postgresStorage) getURL(ctx context.Context, url string, column string) (string, error) {
 	var q string
 	switch column {
-		case Short:
-			q = `SELECT short_url FROM links WHERE long_url = $1`
-		case Long:
-			q = `SELECT long_url FROM links WHERE short_url = $1`
+	case Short:
+		q = `SELECT short_url FROM links WHERE long_url = $1`
+	case Long:
+		q = `SELECT long_url FROM links WHERE short_url = $1`
 	}
 
-	var returnUrl string
-	s.pool.QueryRow(ctx, q, url).Scan(&returnUrl)
-	if returnUrl == "" {
-		return "", service.ErrUrlNotFound
+	var returnURL string
+	err := s.pool.QueryRow(ctx, q, url).Scan(&returnURL)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrNotFound
+		}
+		return "", fmt.Errorf("get url: %w", err)
 	}
-	return returnUrl, nil
+	return returnURL, nil
 }

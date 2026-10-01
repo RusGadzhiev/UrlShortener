@@ -1,20 +1,24 @@
 package validator
 
 import (
-	"github.com/asaskevich/govalidator"
+	"net/url"
+	"regexp"
 )
 
-var shortUrlPattern string
+var shortURLPattern *regexp.Regexp
 
 func ValidatorInit(pattern string) {
-	govalidator.SetFieldsRequiredByDefault(true)
-	shortUrlPattern = pattern
+	shortURLPattern = regexp.MustCompile(pattern)
 }
 
-func IsUrl(url string) bool {
-	return govalidator.IsURL(url)
+func IsUrl(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	return u.Scheme != "" && u.Host != ""
 }
 
-func IsShortUrl(shortUrl string) bool {
-	return govalidator.Matches(shortUrl, shortUrlPattern)
+func IsShortUrl(shortURL string) bool {
+	return shortURLPattern.MatchString(shortURL)
 }

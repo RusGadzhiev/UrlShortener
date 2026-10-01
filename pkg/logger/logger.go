@@ -1,50 +1,47 @@
 package logger
 
 import (
-	"log"
-
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+	"fmt"
+	"log/slog"
+	"os"
 )
 
 func init() {
-	config := zap.NewDevelopmentConfig()
-	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	logger, err := config.Build()
-	if err != nil {
-		log.Fatal(err)
-	}
-	zap.ReplaceGlobals(logger)
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})))
 }
 
-func Info(args ...interface{}) {
-	zap.S().Info(args...)
+func Info(msg string, args ...any) {
+	slog.Info(msg, args...)
 }
 
-func Infof(template string, args ...interface{}) {
-	zap.S().Infof(template, args...)
+func Infof(format string, args ...any) {
+	slog.Info(fmt.Sprintf(format, args...))
 }
 
-func Debug(args ...interface{}) {
-	zap.S().Debug(args...)
+func Debug(msg string, args ...any) {
+	slog.Debug(msg, args...)
 }
 
-func Debugf(template string, args ...interface{}) {
-	zap.S().Debugf(template, args...)
+func Debugf(format string, args ...any) {
+	slog.Debug(fmt.Sprintf(format, args...))
 }
 
-func Error(args ...interface{}) {
-	zap.S().Error(args...)
+func Error(msg string, args ...any) {
+	slog.Error(msg, args...)
 }
 
-func Errorf(template string, args ...interface{}) {
-	zap.S().Errorf(template, args...)
+func Errorf(format string, args ...any) {
+	slog.Error(fmt.Sprintf(format, args...))
 }
 
-func Fatal(args ...interface{}) {
-	zap.S().Fatal(args...)
+func Fatal(msg string, args ...any) {
+	slog.Error(msg, args...)
+	os.Exit(1)
 }
 
-func Fatalf(template string, args ...interface{}) {
-	zap.S().Fatalf(template, args...)
+func Fatalf(format string, args ...any) {
+	slog.Error(fmt.Sprintf(format, args...))
+	os.Exit(1)
 }

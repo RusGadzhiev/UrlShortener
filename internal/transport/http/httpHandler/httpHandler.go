@@ -3,17 +3,17 @@ package httpHandler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/RusGadzhiev/UrlShortener/internal/service"
 	"github.com/RusGadzhiev/UrlShortener/pkg/logger"
 	"github.com/RusGadzhiev/UrlShortener/pkg/validator"
-	"github.com/gorilla/mux"
 )
 
 type Service interface {
-	GetUrl(ctx context.Context, shortenUrl string) (string, error)
+	GetUrl(ctx context.Context, shortenURL string) (string, error)
 	ShortenUrl(ctx context.Context, url string) (string, error)
 }
 
@@ -27,48 +27,41 @@ func NewHttpHandler(service Service) *HttpHandler {
 	}
 }
 
-func (h *HttpHandler) Router() *mux.Router {
-	r := mux.NewRouter()
-	r.StrictSlash(true)
-	r.HandleFunc("/api/get-url", h.GetUrl).Methods("GET")
-	r.HandleFunc("/api/shorten-url", h.ShortenUrl).Methods("POST")
+func (h *HttpHandler) Router() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/get-url", h.GetUrl)
+	mux.HandleFunc("POST /api/shorten-url", h.ShortenUrl)
 
-	r.Use(func(hdl http.Handler) http.Handler {
-		return h.PanicRecoverMiddleware(hdl)
-	})
-	r.Use(func(hdl http.Handler) http.Handler {
-		return h.LoggingMiddleware(hdl)
-	})
-	
-	return r
+	return h.PanicRecoverMiddleware(h.LoggingMiddleware(mux))
 }
 
 func (h *HttpHandler) GetUrl(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	shortUrl := r.URL.Query().Get("shortUrl")
-	if !validator.IsShortUrl(shortUrl) {
-		logger.Debugf("ShortUrl: %s not valid", shortUrl)
+	shortURL := r.URL.Query().Get("shortUrl")
+	if !validator.IsShortUrl(shortURL) {
+		logger.Debug("short url is not valid", "short_url", shortURL)
 		h.clientError(w)
 		return
 	}
 
-	longUrl, err := h.service.GetUrl(ctx, shortUrl)
-	if err == service.ErrUrlNotFound {
-		logger.Debugf("ShortUrl: %s not found", shortUrl)
+	longURL, err := h.service.GetUrl(ctx, shortURL)
+	if errors.Is(err, service.ErrUrlNotFound) {
+		logger.Debug("short url not found", "short_url", shortURL)
 		h.clientError(w)
 		return
-	} else if err != nil {
-		logger.Errorf("ShortUrl: %s not found, err: %w", shortUrl, err)
+	}
+	if err != nil {
+		logger.Error("get url", "short_url", shortURL, "err", err)
 		h.serverError(w)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	err = renderJSON(w, longUrl)
+	err = renderJSON(w, longURL)
 	if err != nil {
-		logger.Errorf("RenderJson err: %w", err)
+		logger.Error("render json", "err", err)
 	}
 }
 
@@ -76,29 +69,29 @@ func (h *HttpHandler) ShortenUrl(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	longUrl := r.URL.Query().Get("longUrl")
-	if !validator.IsUrl(longUrl) {
-		logger.Debugf("LongUrl: %s not valid", longUrl)
+	longURL := r.URL.Query().Get("longUrl")
+	if !validator.IsUrl(longURL) {
+		logger.Debug("long url is not valid", "long_url", longURL)
 		h.clientError(w)
 		return
 	}
 
-	shortUrl, err := h.service.ShortenUrl(ctx, longUrl)
+	shortURL, err := h.service.ShortenUrl(ctx, longURL)
 	if err != nil {
-		logger.Errorf("ShortenUrl err: %w", err)
+		logger.Error("shorten url", "err", err)
 		h.serverError(w)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	err = renderJSON(w, shortUrl)
+	err = renderJSON(w, shortURL)
 	if err != nil {
-		logger.Errorf("RenderJson err: %w", err)
+		logger.Error("render json", "err", err)
 	}
 }
 
 // renderJSON преобразует 'v' в формат JSON и записывает результат, в виде ответа, в w.
-func renderJSON(w http.ResponseWriter, v interface{}) error {
+func renderJSON(w http.ResponseWriter, v any) error {
 	json, err := json.Marshal(v)
 	if err != nil {
 		return err

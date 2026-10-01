@@ -2,6 +2,7 @@ package grpcServer
 
 import (
 	"context"
+	"errors"
 	"net"
 
 	"github.com/RusGadzhiev/UrlShortener/internal/transport/grpc/grpcHandler"
@@ -15,9 +16,9 @@ type GRPCServer struct {
 	port   string
 }
 
-func NewGRPCServer(ctx context.Context, grpcHandlers proto.GRPCHandlerServer, port string) *GRPCServer {
+func NewGRPCServer(grpcHandlers proto.GRPCHandlerServer, port string) *GRPCServer {
 	s := grpc.NewServer(
-    	grpc.UnaryInterceptor(grpcHandler.LoggingUnaryServerInterceptor),
+		grpc.UnaryInterceptor(grpcHandler.LoggingUnaryServerInterceptor),
 	)
 	proto.RegisterGRPCHandlerServer(s, grpcHandlers)
 
@@ -34,14 +35,14 @@ func (s *GRPCServer) Run(ctx context.Context) error {
 	}
 
 	go func() {
-		if err := s.server.Serve(listener); err != nil && err != grpc.ErrServerStopped { // или http
-			logger.Fatalf("Listen grpc server error: ", err)
+		if err := s.server.Serve(listener); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+			logger.Fatal("listen grpc server", "err", err)
 		}
 	}()
-	logger.Info("Start listen grpc server at " + ":" + s.port)
+	logger.Info("start listen grpc server", "addr", ":"+s.port)
 
 	<-ctx.Done()
-	logger.Info("Gracefully stopping...")
+	logger.Info("gracefully stopping", "cause", context.Cause(ctx))
 
 	s.server.GracefulStop()
 	return err
